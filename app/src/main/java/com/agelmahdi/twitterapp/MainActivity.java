@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
             twitter = new TwitterFactory().getInstance();
             twitter.setOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET);
         }
-        if (isLoggedIn()){
+        else {
             // user already logged into twitter
             Intent intent = new Intent(MainActivity.this, FollowerActivity.class);
             startActivity(intent);
@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 editor.putString(PREF_OAUTH_TOKEN, accessToken.getToken());
                 editor.putString(PREF_OAUTH_SECRET, accessToken.getTokenSecret());
                 editor.putBoolean(PREF_LOGIN, true);
-
+                editor.apply();
             } catch (TwitterException e) {
                 e.getMessage();
             }
@@ -119,13 +119,19 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(String... strings) {
             //Request Token & return auther url
-            try {
+            if (!isLoggedIn()) {
+                try {
+                    requestToken = twitter.getOAuthRequestToken();
+                    auth_url = requestToken.getAuthorizationURL();
 
-                requestToken = twitter.getOAuthRequestToken();
-                auth_url = requestToken.getAuthorizationURL();
-
-            } catch (TwitterException e) {
-                e.printStackTrace();
+                } catch (TwitterException e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                Intent intent = new Intent(MainActivity.this, FollowerActivity.class);
+                startActivity(intent);
+                finish();
             }
             return auth_url;
         }

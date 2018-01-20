@@ -15,20 +15,23 @@ import android.view.Window;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
+
+import com.agelmahdi.twitterapp.Utils.TweetAlertDialog;
+
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
 
-import static com.agelmahdi.twitterapp.Constant.CONSUMER_KEY;
-import static com.agelmahdi.twitterapp.Constant.CONSUMER_SECRET;
-import static com.agelmahdi.twitterapp.Constant.PREFERENCE_KEY;
-import static com.agelmahdi.twitterapp.Constant.PREF_LOGIN;
-import static com.agelmahdi.twitterapp.Constant.PREF_OAUTH_SECRET;
-import static com.agelmahdi.twitterapp.Constant.PREF_OAUTH_TOKEN;
-import static com.agelmahdi.twitterapp.Constant.TWITTER_OAUTH_VERIFIER;
-import static com.agelmahdi.twitterapp.Utils.isNetworkAvailable;
+import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_KEY;
+import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_SECRET;
+import static com.agelmahdi.twitterapp.Utils.Constant.PREFERENCE_KEY;
+import static com.agelmahdi.twitterapp.Utils.Constant.PREF_LOGIN;
+import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_SECRET;
+import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_TOKEN;
+import static com.agelmahdi.twitterapp.Utils.Constant.TWITTER_OAUTH_VERIFIER;
+import static com.agelmahdi.twitterapp.Utils.Utils.isNetworkAvailable;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -57,21 +60,20 @@ public class MainActivity extends AppCompatActivity {
         //Shared Pref Initialization
         preferences = getApplicationContext().getSharedPreferences(PREFERENCE_KEY, 0);
         login = (ImageView) findViewById(R.id.login);
-            //Check Network Availability
+        //Check Network Availability
         if (!isNetworkAvailable(this)) {
-            dialog.showAlertDialog(this, "Check Network Connection!");
+            dialog.showAlertDialog(this, getString(R.string.check_network));
         }
         //Check CONSUMER KEY & SECRET KEY Availability
 
         if (CONSUMER_KEY.trim().isEmpty() || CONSUMER_SECRET.trim().isEmpty()) {
-            dialog.showAlertDialog(this, "Missed Token!");
+            dialog.showAlertDialog(this, getString(R.string.missed_token));
             //Get Consumer key & Secret and pass it to twitter instance
         }
         if (!isLoggedIn()) {
             twitter = new TwitterFactory().getInstance();
             twitter.setOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET);
-        }
-        else {
+        } else {
             // user already logged into twitter
             Intent intent = new Intent(MainActivity.this, FollowerActivity.class);
             startActivity(intent);
@@ -127,8 +129,7 @@ public class MainActivity extends AppCompatActivity {
                 } catch (TwitterException e) {
                     e.printStackTrace();
                 }
-            }
-            else {
+            } else {
                 Intent intent = new Intent(MainActivity.this, FollowerActivity.class);
                 startActivity(intent);
                 finish();
@@ -149,7 +150,6 @@ public class MainActivity extends AppCompatActivity {
                 //load url to web view
                 webView.loadUrl(auth_url);
                 webView.setWebViewClient(new WebViewClient() {
-                    boolean authComplete = false;
                     @Override
                     public void onPageStarted(WebView view, String url, Bitmap favicon) {
                         super.onPageStarted(view, url, favicon);
@@ -158,8 +158,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onPageFinished(WebView view, String url) {
                         super.onPageFinished(view, url);
-                        if (url.contains(TWITTER_OAUTH_VERIFIER)&& authComplete == false) {
-                            authComplete=true;
+                        if (url.contains(TWITTER_OAUTH_VERIFIER)) {
                             Log.e("Url", url);
                             Uri uri = Uri.parse(url);
                             verifier = uri.getQueryParameter(TWITTER_OAUTH_VERIFIER);
@@ -167,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
                             new TokenAuthentication().execute();
                         } else if (url.contains("denied")) {
                             d.dismiss();
-                            dialog.showAlertDialog(MainActivity.this, "Access Denied");
+                            dialog.showAlertDialog(MainActivity.this, getString(R.string.access_denied));
                         }
                     }
                 });

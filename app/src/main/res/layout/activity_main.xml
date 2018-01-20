@@ -5,12 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.agelmahdi.twitterapp.MainActivity">
+
     <ImageView
         android:id="@+id/login"
-        android:layout_width="400dp"
+        android:layout_width="326dp"
         android:layout_height="100dp"
         android:layout_gravity="center"
         android:src="@drawable/sign_in"
-        />
+        android:contentDescription="@string/login_with_twitter" />
 
 </FrameLayout>

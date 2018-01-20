@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">TwitterApp</string>
     <string name="follower_image">follower image</string>
+    <string name="access_denied">Access Denied</string>
+    <string name="missed_token">Missed Token!</string>
+    <string name="check_network">Check Network Connection!</string>
+    <string name="banner_image">Banner Image</string>
+    <string name="profile_image">Profile Image</string>
+    <string name="login_with_twitter">Login With Twitter</string>
+    <string name="canel">Cancel</string>
 </resources>

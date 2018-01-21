@@ -11,9 +11,9 @@ import twitter4j.api.TimelinesResources;
  * Created by Ahmed El-Mahdi on 1/20/2018.
  */
 
-public class tweet implements Parcelable{
-    private String followerTweetName;
+public class tweet implements Parcelable {
     private String tweetStatus;
+
 
     public tweet(Status resources) {
         this.tweetStatus = resources.getText();
@@ -21,7 +21,6 @@ public class tweet implements Parcelable{
     }
 
     protected tweet(Parcel in) {
-        followerTweetName = in.readString();
         tweetStatus = in.readString();
     }
 
@@ -37,9 +36,6 @@ public class tweet implements Parcelable{
         }
     };
 
-    public String getFollowerTweetName() {
-        return followerTweetName;
-    }
 
     public String getTweetStatus() {
         return tweetStatus;
@@ -52,7 +48,8 @@ public class tweet implements Parcelable{
 
     @Override
     public void writeToParcel(Parcel parcel, int i) {
-        parcel.writeString(followerTweetName);
         parcel.writeString(tweetStatus);
     }
+
+
 }

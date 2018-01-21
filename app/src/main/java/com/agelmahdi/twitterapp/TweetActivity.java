@@ -1,9 +1,12 @@
 package com.agelmahdi.twitterapp;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.PersistableBundle;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -14,7 +17,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.agelmahdi.twitterapp.Adapters.TweetAdapter;
-import com.agelmahdi.twitterapp.Model.follower;
 import com.agelmahdi.twitterapp.Model.tweet;
 import com.agelmahdi.twitterapp.Utils.TweetAlertDialog;
 import com.squareup.picasso.Picasso;
@@ -26,23 +28,24 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import twitter4j.IDs;
 import twitter4j.Paging;
-import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
-import twitter4j.User;
 import twitter4j.auth.AccessToken;
 
+import static com.agelmahdi.twitterapp.FollowerActivity.COL_NUM_BG_IMAGE;
+import static com.agelmahdi.twitterapp.FollowerActivity.COL_NUM_ID;
+import static com.agelmahdi.twitterapp.FollowerActivity.COL_NUM_PROFILE_IMAGE;
+import static com.agelmahdi.twitterapp.FollowerActivity.COL_NUM_USERS_NAME;
+import static com.agelmahdi.twitterapp.FollowerActivity.FOLLOWER_PROJECTION;
 import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_KEY;
 import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_SECRET;
-import static com.agelmahdi.twitterapp.Utils.Constant.FOLLOWER;
 import static com.agelmahdi.twitterapp.Utils.Constant.PREFERENCE_KEY;
 import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_SECRET;
 import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_TOKEN;
-import static com.agelmahdi.twitterapp.Utils.Constant.TWEETS;
 import static com.agelmahdi.twitterapp.Utils.Utils.isNetworkAvailable;
 
-public class TweetActivity extends AppCompatActivity {
+public class TweetActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
 
     @Bind(R.id.tweet_rv)
@@ -50,16 +53,23 @@ public class TweetActivity extends AppCompatActivity {
     @Bind(R.id.profile_image)
     ImageView profileImage;
     @Bind(R.id.back_ground_image)
-    ImageView backGrounfImage;
+    ImageView backGroundImage;
     @Bind(R.id.profile_name)
     TextView profile_name;
 
     private TweetAdapter tweetAdapter;
     private ArrayList<tweet> mTweets;
-    follower follower;
+
     Twitter twitter;
     AccessToken accessToken;
     SharedPreferences SharedPrefs;
+
+    private Uri mUri;
+
+    long follower_id;
+
+    private static final int ID_DETAIL_LOADER = 10;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,44 +78,27 @@ public class TweetActivity extends AppCompatActivity {
         SharedPrefs = getApplicationContext().getSharedPreferences(PREFERENCE_KEY, 0);
         ButterKnife.bind(this);
         configViews();
-        Intent intent = getIntent();
-        follower = intent.getParcelableExtra(FOLLOWER);
-        profile_name.setText(follower.getFollowerName());
-
-        Picasso.with(this)
-                .load(follower.getFollowerImageUrl())
-                .placeholder(R.drawable.ic_black_person)
-                .into(profileImage);
-
-        Picasso.with(this)
-                .load(follower.getFollowerBackgroundImage())
-                .placeholder(R.drawable.ic_black_person)
-                .into(backGrounfImage);
 
         if (!isNetworkAvailable(this)) {
             TweetAlertDialog dialog = new TweetAlertDialog();
             dialog.showAlertDialog(this, getString(R.string.check_network));
         }
-        if (savedInstanceState != null) {
-            if (savedInstanceState.containsKey(TWEETS)) {
-                mTweets = savedInstanceState.getParcelableArrayList(TWEETS);
-                tweetAdapter.addTweet(mTweets);
-            } else {
-                new GetTweets().execute(follower.getFollowerId());
-            }
-        } else {
-            new GetTweets().execute(follower.getFollowerId());
-        }
 
+
+        mUri = getIntent().getData();
+        Log.e("Response", "urii :" + mUri);
+
+        if (mUri == null) throw new NullPointerException("URI for DetailActivity cannot be null");
+
+        getSupportLoaderManager().initLoader(ID_DETAIL_LOADER, null, this);
     }
 
+
     @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        ArrayList<tweet> tweets = tweetAdapter.getTweets();
-        if (tweets != null && !tweets.isEmpty()) {
-            outState.putParcelableArrayList(TWEETS, tweets);
-        }
+    protected void onResume() {
+        super.onResume();
+        getSupportLoaderManager().restartLoader(ID_DETAIL_LOADER, null, this);
+
     }
 
     private void configViews() {
@@ -116,6 +109,67 @@ public class TweetActivity extends AppCompatActivity {
         tweetAdapter = new TweetAdapter(this, new ArrayList<tweet>());
         mRecyclerView.setAdapter(tweetAdapter);
     }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        switch (id) {
+
+            case ID_DETAIL_LOADER:
+
+                return new CursorLoader(this,
+                        mUri,
+                        FOLLOWER_PROJECTION,
+                        null,
+                        null,
+                        null);
+
+            default:
+                throw new RuntimeException("Loader Not Implemented: " + id);
+        }
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+        boolean cursorHasValidData = false;
+        if (data != null && data.moveToFirst()) {
+            /* We have valid data, continue on to bind the data to the UI */
+            cursorHasValidData = true;
+
+        }
+
+        if (!cursorHasValidData) {
+            /* No data to display, simply return and do nothing */
+            return;
+        }
+        Log.e("Response", "Data :" + data.getString(COL_NUM_USERS_NAME));
+
+        follower_id = data.getLong(COL_NUM_ID);
+        String followerName = data.getString(COL_NUM_USERS_NAME);
+        String followerImage = data.getString(COL_NUM_PROFILE_IMAGE);
+        String followerBgImage = data.getString(COL_NUM_BG_IMAGE);
+
+        profile_name.setText(followerName);
+
+        Picasso.with(TweetActivity.this)
+                .load(followerImage)
+                .placeholder(R.drawable.ic_black_person)
+                .into(profileImage);
+
+        Picasso.with(TweetActivity.this)
+                .load(followerBgImage)
+                .placeholder(R.drawable.ic_black_person)
+                .into(backGroundImage);
+
+        new GetTweets().execute(follower_id);
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
+    }
+
 
     private class GetTweets extends AsyncTask<Long, String, ArrayList<tweet>> {
         @Override

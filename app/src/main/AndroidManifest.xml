@@ -38,6 +38,9 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".FollowerActivity" />
         </activity>
+        <provider
+            android:authorities="com.agelmahdi.twitterapp"
+            android:name=".Database.TweetProvider"/>
     </application>
 
 </manifest>

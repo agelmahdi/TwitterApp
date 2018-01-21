@@ -1,6 +1,5 @@
 package com.agelmahdi.twitterapp;
 
-
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;

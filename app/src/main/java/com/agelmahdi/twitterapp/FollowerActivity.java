@@ -1,21 +1,29 @@
 package com.agelmahdi.twitterapp;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.agelmahdi.twitterapp.Adapters.FollowerAdapter;
+import com.agelmahdi.twitterapp.Database.TweetContract;
 import com.agelmahdi.twitterapp.Model.follower;
 import com.agelmahdi.twitterapp.Model.tweet;
 import com.agelmahdi.twitterapp.Utils.TweetAlertDialog;
@@ -35,6 +43,11 @@ import twitter4j.TwitterFactory;
 import twitter4j.User;
 import twitter4j.auth.AccessToken;
 
+import static com.agelmahdi.twitterapp.Database.TweetContract.FollowerEntry.COLUMN_BG_IMAGE;
+import static com.agelmahdi.twitterapp.Database.TweetContract.FollowerEntry.COLUMN_BIO;
+import static com.agelmahdi.twitterapp.Database.TweetContract.FollowerEntry.COLUMN_PROFILE_IMAGE;
+import static com.agelmahdi.twitterapp.Database.TweetContract.FollowerEntry.COLUMN_USER_ID;
+import static com.agelmahdi.twitterapp.Database.TweetContract.FollowerEntry.COLUMN_USER_NAME;
 import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_KEY;
 import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_SECRET;
 import static com.agelmahdi.twitterapp.Utils.Constant.FOLLOWER;
@@ -43,13 +56,15 @@ import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_SECRET;
 import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_TOKEN;
 import static com.agelmahdi.twitterapp.Utils.Utils.isNetworkAvailable;
 
-public class FollowerActivity extends AppCompatActivity implements FollowerAdapter.FollowerOnClickHandler {
+public class FollowerActivity extends AppCompatActivity implements FollowerAdapter.FollowerOnClickHandler, LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final String TAG = FollowerActivity.class.getName();
     Twitter twitter;
     AccessToken accessToken;
     SharedPreferences SharedPrefs;
     ArrayList<follower> mFollowers;
     private FollowerAdapter mFollowerAdapter;
-
+    private follower follower;
 
     @Bind(R.id.recycler_view)
     RecyclerView mRecyclerView;
@@ -57,9 +72,33 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
     @Bind(R.id.swipeRefreshLayout)
     SwipeRefreshLayout swipeRefreshLayout;
 
+    private LoaderManager mLoaderManager;
+
+    private static final int TASK_LOADER_ID = 0;
+
+    public static final String[] FOLLOWER_PROJECTION = {
+
+            COLUMN_USER_ID,
+            COLUMN_USER_NAME,
+            COLUMN_BIO,
+            COLUMN_PROFILE_IMAGE,
+            COLUMN_BG_IMAGE,
+
+    };
+    public static final int COL_NUM_ID = 0;
+    public static final int COL_NUM_USERS_NAME = 1;
+    public static final int COL_NUM_BIO = 2;
+    public static final int COL_NUM_PROFILE_IMAGE = 3;
+    public static final int COL_NUM_BG_IMAGE = 4;
+
+
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_follower);
+
+        mLoaderManager = getSupportLoaderManager();
+
         mFollowers = new ArrayList<>();
         ButterKnife.bind(this);
         SharedPrefs = getApplicationContext().getSharedPreferences(PREFERENCE_KEY, 0);
@@ -77,6 +116,8 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
             new GetFollowers().execute();
         }
 
+        mLoaderManager.initLoader(TASK_LOADER_ID, null, this);
+
     }
 
     @Override
@@ -88,12 +129,13 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
                 // Refresh items
                 if (mFollowers != null && mFollowerAdapter != null) {
                     mFollowers.clear();
-                    mFollowerAdapter.clear();
                     new GetFollowers().execute();
                 }
 
             }
         });
+        mLoaderManager.restartLoader(TASK_LOADER_ID, null, this);
+
     }
 
     private void configViews() {
@@ -106,10 +148,35 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
     }
 
     @Override
-    public void onClickFollower(follower follower, int position) {
+    public void onClickFollower(long position) {
         Intent intent = new Intent(this, TweetActivity.class);
-        intent.putExtra(FOLLOWER, follower);
+        Uri uriIdClicked = TweetContract.buildUriWithID(position);
+        intent.setData(uriIdClicked);
         startActivity(intent);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        switch (id) {
+
+            case TASK_LOADER_ID:
+                return new CursorLoader(this, TweetContract.FollowerEntry.CONTENT_URI,
+                        FOLLOWER_PROJECTION, null, null, COLUMN_USER_ID);
+            default:
+                throw new RuntimeException("Loader Not Implemented: " + id);
+        }
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+        mFollowerAdapter.swapCursor(data);
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
     }
 
     private class GetFollowers extends AsyncTask<String, String, ArrayList<follower>> {
@@ -132,9 +199,8 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
 
                     for (long id : ids.getIDs()) {
                         User user = twitter.showUser(id);
-                        final follower follower = new follower(user);
+                        follower = new follower(user);
                         mFollowers.add(follower);
-
                     }
 
                 }
@@ -150,12 +216,39 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
         @Override
         protected void onPostExecute(ArrayList<follower> followers) {
             super.onPostExecute(followers);
-            if (mFollowerAdapter != null) {
-                mFollowerAdapter.addFollower(followers);
-            }
+
             swipeRefreshLayout.setRefreshing(false);
+
+            for (int i = 0; i < followers.size(); i++) {
+                follower follower = followers.get(i);
+                PersistData persistData = new PersistData();
+                persistData.execute(follower);
+            }
 
         }
     }
+
+    private class PersistData extends AsyncTask<follower, Void, Void> {
+        @Override
+        protected final Void doInBackground(follower... data) {
+
+            follower followe = data[0];
+            try {
+                ContentValues follow = new ContentValues();
+                follow.put(COLUMN_USER_ID, followe.getFollowerId());
+                follow.put(COLUMN_USER_NAME, followe.getFollowerName());
+                follow.put(COLUMN_BIO, followe.getFollowerBio());
+                follow.put(COLUMN_PROFILE_IMAGE, followe.getFollowerImageUrl());
+                follow.put(COLUMN_BG_IMAGE, followe.getFollowerBackgroundImage());
+
+                getContentResolver().insert(TweetContract.FollowerEntry.CONTENT_URI, follow);
+            } catch (Exception e) {
+                Log.d(TAG, e.getMessage());
+            }
+
+            return null;
+        }
+    }
+
 
 }

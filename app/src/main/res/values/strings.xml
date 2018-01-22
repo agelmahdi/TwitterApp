@@ -8,4 +8,5 @@
     <string name="profile_image">Profile Image</string>
     <string name="login_with_twitter">Login With Twitter</string>
     <string name="canel">Cancel</string>
+    <string name="cancel">Cancel</string>
 </resources>

@@ -7,36 +7,26 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Parcelable;
-import android.os.PersistableBundle;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
-import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.agelmahdi.twitterapp.Adapters.FollowerAdapter;
 import com.agelmahdi.twitterapp.Database.TweetContract;
 import com.agelmahdi.twitterapp.Model.follower;
-import com.agelmahdi.twitterapp.Model.tweet;
 import com.agelmahdi.twitterapp.Utils.TweetAlertDialog;
 
-import org.w3c.dom.Text;
-
 import java.util.ArrayList;
-import java.util.List;
 
-import butterknife.Bind;
-import butterknife.ButterKnife;
 import twitter4j.IDs;
-import twitter4j.Paging;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
@@ -50,7 +40,6 @@ import static com.agelmahdi.twitterapp.Database.TweetContract.FollowerEntry.COLU
 import static com.agelmahdi.twitterapp.Database.TweetContract.FollowerEntry.COLUMN_USER_NAME;
 import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_KEY;
 import static com.agelmahdi.twitterapp.Utils.Constant.CONSUMER_SECRET;
-import static com.agelmahdi.twitterapp.Utils.Constant.FOLLOWER;
 import static com.agelmahdi.twitterapp.Utils.Constant.PREFERENCE_KEY;
 import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_SECRET;
 import static com.agelmahdi.twitterapp.Utils.Constant.PREF_OAUTH_TOKEN;
@@ -66,12 +55,13 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
     private FollowerAdapter mFollowerAdapter;
     private follower follower;
 
-    @Bind(R.id.recycler_view)
     RecyclerView mRecyclerView;
 
-    @Bind(R.id.swipeRefreshLayout)
+    RecyclerView mRecyclerViewPortrait;
+
     SwipeRefreshLayout swipeRefreshLayout;
 
+    Toolbar toolbar;
     private LoaderManager mLoaderManager;
 
     private static final int TASK_LOADER_ID = 0;
@@ -92,15 +82,17 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
     public static final int COL_NUM_BG_IMAGE = 4;
 
 
-
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_follower);
-
+        toolbar = (Toolbar) findViewById(R.id.toolbarF);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
         mLoaderManager = getSupportLoaderManager();
-
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshLayout);
+        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        mRecyclerViewPortrait = (RecyclerView) findViewById(R.id.recycler_view_portrait);
         mFollowers = new ArrayList<>();
-        ButterKnife.bind(this);
         SharedPrefs = getApplicationContext().getSharedPreferences(PREFERENCE_KEY, 0);
         configViews();
 
@@ -117,12 +109,23 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
         }
 
         mLoaderManager.initLoader(TASK_LOADER_ID, null, this);
+    }
+
+    void portraitConfiguration() {
+        if (findViewById(R.id.recycler_view_portrait) != null) {
+            mRecyclerViewPortrait.setRecycledViewPool(new RecyclerView.RecycledViewPool());
+            mRecyclerViewPortrait.setLayoutManager(new GridLayoutManager(this, 3));
+            mRecyclerViewPortrait.setItemAnimator(new DefaultItemAnimator());
+            mRecyclerViewPortrait.setAdapter(mFollowerAdapter);
+        }
 
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        portraitConfiguration();
+
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -134,17 +137,20 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
 
             }
         });
+
         mLoaderManager.restartLoader(TASK_LOADER_ID, null, this);
 
     }
 
     private void configViews() {
-        mRecyclerView.setRecycledViewPool(new RecyclerView.RecycledViewPool());
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
-        mRecyclerView.setHasFixedSize(true);
-        mRecyclerView.setItemAnimator(new DefaultItemAnimator());
-        mFollowerAdapter = new FollowerAdapter(this, this);
-        mRecyclerView.setAdapter(mFollowerAdapter);
+        if (findViewById(R.id.recycler_view) != null) {
+            mRecyclerView.setRecycledViewPool(new RecyclerView.RecycledViewPool());
+            mRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+            mRecyclerView.setHasFixedSize(true);
+            mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+            mFollowerAdapter = new FollowerAdapter(this, this);
+            mRecyclerView.setAdapter(mFollowerAdapter);
+        }
     }
 
     @Override
@@ -169,9 +175,7 @@ public class FollowerActivity extends AppCompatActivity implements FollowerAdapt
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-
         mFollowerAdapter.swapCursor(data);
-
     }
 
     @Override

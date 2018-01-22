@@ -26,7 +26,7 @@ public class FollowerAdapter extends RecyclerView.Adapter<FollowerAdapter.ViewHo
     private FollowerOnClickHandler mFollowerOnClickHandler;
 
     public interface FollowerOnClickHandler {
-        void onClickFollower( long position);
+        void onClickFollower(long position);
     }
 
     public FollowerAdapter(Context c, FollowerOnClickHandler followerOnClickHandler) {
@@ -43,7 +43,7 @@ public class FollowerAdapter extends RecyclerView.Adapter<FollowerAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, int position) {
-       // final follower follower = mFollowers.get(position);
+        // final follower follower = mFollowers.get(position);
 
         mCursor.moveToPosition(position);
 
@@ -63,8 +63,7 @@ public class FollowerAdapter extends RecyclerView.Adapter<FollowerAdapter.ViewHo
                     .placeholder(R.drawable.ic_black_person)
                     .into(holder.followerImage);
 
-        }
-        else {
+        } else {
             Picasso.with(mContext)
                     .load(imageUrl)
                     .placeholder(R.drawable.ic_black_person)
@@ -74,7 +73,7 @@ public class FollowerAdapter extends RecyclerView.Adapter<FollowerAdapter.ViewHo
 
     @Override
     public int getItemCount() {
-          if (mCursor == null) {
+        if (mCursor == null) {
             return 0;
         }
         return mCursor.getCount();
@@ -93,7 +92,7 @@ public class FollowerAdapter extends RecyclerView.Adapter<FollowerAdapter.ViewHo
         mFollowers.clear();
     }*/
 
-    public Cursor  swapCursor(Cursor newCursor) {
+    public Cursor swapCursor(Cursor newCursor) {
 
         if (mCursor == newCursor) {
             return null;
@@ -108,7 +107,7 @@ public class FollowerAdapter extends RecyclerView.Adapter<FollowerAdapter.ViewHo
 
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         TextView followerName, followerBio;
         ImageView followerImage;
 

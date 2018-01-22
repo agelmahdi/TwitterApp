@@ -1,5 +1,6 @@
 package com.agelmahdi.twitterapp;
 
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
@@ -7,14 +8,17 @@ import android.os.AsyncTask;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.agelmahdi.twitterapp.Adapters.TweetAdapter;
 import com.agelmahdi.twitterapp.Model.tweet;
@@ -47,15 +51,15 @@ import static com.agelmahdi.twitterapp.Utils.Utils.isNetworkAvailable;
 
 public class TweetActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
-
     @Bind(R.id.tweet_rv)
     RecyclerView mRecyclerView;
     @Bind(R.id.profile_image)
     ImageView profileImage;
     @Bind(R.id.back_ground_image)
     ImageView backGroundImage;
-    @Bind(R.id.profile_name)
-    TextView profile_name;
+
+    @Bind(R.id.toolbar)
+    Toolbar toolbar;
 
     private TweetAdapter tweetAdapter;
     private ArrayList<tweet> mTweets;
@@ -67,7 +71,8 @@ public class TweetActivity extends AppCompatActivity implements LoaderManager.Lo
     private Uri mUri;
 
     long follower_id;
-
+    String followerName;
+    String followerImage;
     private static final int ID_DETAIL_LOADER = 10;
 
 
@@ -77,6 +82,7 @@ public class TweetActivity extends AppCompatActivity implements LoaderManager.Lo
         setContentView(R.layout.activity_tweet);
         SharedPrefs = getApplicationContext().getSharedPreferences(PREFERENCE_KEY, 0);
         ButterKnife.bind(this);
+
         configViews();
 
         if (!isNetworkAvailable(this)) {
@@ -90,6 +96,32 @@ public class TweetActivity extends AppCompatActivity implements LoaderManager.Lo
 
         if (mUri == null) throw new NullPointerException("URI for DetailActivity cannot be null");
 
+        profileImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LayoutInflater li = LayoutInflater.from(TweetActivity.this);
+                View dialogView = li.inflate(R.layout.browse_image, null);
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+                        TweetActivity.this);
+                alertDialogBuilder.setView(dialogView);
+                final ImageView fullImage = dialogView
+                        .findViewById(R.id.full_screen_image);
+
+                Picasso.with(TweetActivity.this)
+                        .load(followerImage)
+                        .placeholder(R.drawable.ic_black_person)
+                        .into(fullImage);
+                alertDialogBuilder.setNegativeButton(R.string.cancel,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,
+                                                int id) {
+                                dialog.cancel();
+                            }
+                        });
+                AlertDialog alertDialog = alertDialogBuilder.create();
+                alertDialog.show();
+            }
+        });
         getSupportLoaderManager().initLoader(ID_DETAIL_LOADER, null, this);
     }
 
@@ -145,11 +177,10 @@ public class TweetActivity extends AppCompatActivity implements LoaderManager.Lo
         Log.e("Response", "Data :" + data.getString(COL_NUM_USERS_NAME));
 
         follower_id = data.getLong(COL_NUM_ID);
-        String followerName = data.getString(COL_NUM_USERS_NAME);
-        String followerImage = data.getString(COL_NUM_PROFILE_IMAGE);
+        followerName = data.getString(COL_NUM_USERS_NAME);
+        followerImage = data.getString(COL_NUM_PROFILE_IMAGE);
         String followerBgImage = data.getString(COL_NUM_BG_IMAGE);
 
-        profile_name.setText(followerName);
 
         Picasso.with(TweetActivity.this)
                 .load(followerImage)
@@ -160,6 +191,11 @@ public class TweetActivity extends AppCompatActivity implements LoaderManager.Lo
                 .load(followerBgImage)
                 .placeholder(R.drawable.ic_black_person)
                 .into(backGroundImage);
+
+        this.setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setTitle(followerName);
 
         new GetTweets().execute(follower_id);
 

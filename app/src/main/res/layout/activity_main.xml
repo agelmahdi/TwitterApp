@@ -11,7 +11,7 @@
         android:layout_width="326dp"
         android:layout_height="100dp"
         android:layout_gravity="center"
-        android:src="@drawable/sign_in"
-        android:contentDescription="@string/login_with_twitter" />
+        android:contentDescription="@string/login_with_twitter"
+        android:src="@drawable/sign_in" />
 
 </FrameLayout>
